@@ -45,6 +45,7 @@ jobs:
         env:
           GH_TOKEN: ${{ steps.token.outputs.token }}
         run: gh pr checkout ${{ github.event.pull_request.number }}
+      - run: git log --oneline
 
       - run: echo "${{ github.run_id }}" >> text.txt
 
