@@ -38,9 +38,6 @@ jobs:
           # token: ${{ steps.token.outputs.token }}
           persist-credentials: false
 
-      - name: Setup GitHub CLI authentication
-        run: gh auth setup-git
-
       - name: Validate maintainer edit permissions
         env:
           GH_TOKEN: ${{ secrets.PAT }}
@@ -77,7 +74,16 @@ jobs:
           echo "TOKEN_LOGIN=${TOKEN_LOGIN}" >> "$GITHUB_ENV"
 
       - name: Checkout PR branch
-        run: gh pr checkout ${{ github.event.pull_request.number }}
+        run: |
+          git fetch origin "pull/${{ github.event.pull_request.number }}/head:${{ github.event.pull_request.head.ref }}"
+          git checkout "${{ github.event.pull_request.head.ref }}"
+
+      - name: Diagnose PAT access to fork
+        run: |
+          echo "PAT scopes:"
+          curl -sS -I -H "Authorization: Bearer ${GH_TOKEN}" https://api.github.com/user | grep -i '^x-oauth-scopes:' || true
+          echo "Can PAT see the fork?"
+          gh api "repos/${{ github.event.pull_request.head.repo.full_name }}" --jq '.full_name,.private,.permissions' || echo "PAT cannot read the fork"
 
       - run: git log --oneline
 
@@ -107,6 +113,6 @@ jobs:
 
           git commit -m "Automated symlink consolidation [skip ci]"
 
-          # For classic PAT, use actual login (not x-access-token)
-          git remote set-url origin "https://${TOKEN_LOGIN}:${GH_TOKEN}@github.com/${{ github.event.pull_request.head.repo.full_name }}.git"
-          git push origin "HEAD:${{ github.event.pull_request.head.ref }}"
+          # Push directly with PAT in URL. Do NOT use `gh auth setup-git` in this
+          # job — its credential helper interferes with the maintainer-push-to-fork path.
+          git push "https://${TOKEN_LOGIN}:${GH_TOKEN}@github.com/${{ github.event.pull_request.head.repo.full_name }}.git" "HEAD:${{ github.event.pull_request.head.ref }}"
