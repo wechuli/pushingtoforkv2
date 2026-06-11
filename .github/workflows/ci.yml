@@ -30,7 +30,7 @@ jobs:
       #   with:
       #     app-id: ${{ secrets.APP_ID }}
       #     private-key: ${{ secrets.APP_PRIVATE_KEY }}
-
+      - run: echo "${{ github.event.pull_request.head.repo.owner.login }}"
       - name: Checkout code
         uses: actions/checkout@v6
         with:
