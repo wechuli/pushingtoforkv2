@@ -30,6 +30,7 @@ jobs:
       #   with:
       #     app-id: ${{ secrets.APP_ID }}
       #     private-key: ${{ secrets.APP_PRIVATE_KEY }}
+
       - name: Checkout code
         uses: actions/checkout@v6
         with:
@@ -40,31 +41,72 @@ jobs:
       - name: Setup GitHub CLI authentication
         run: gh auth setup-git
 
-      # - name: Checkout code
-      #   uses: actions/checkout@v6
-      #   with:
-      #     ref: ${{ github.ref }}
-      #     # token: ${{ steps.token.outputs.token }}
-      #     persist-credentials: false
+      - name: Validate maintainer edit permissions
+        env:
+          GH_TOKEN: ${{ secrets.PAT }}
+        run: |
+          set -euo pipefail
 
+          UPSTREAM_REPO="${{ github.repository }}"
+          PR_NUMBER="${{ github.event.pull_request.number }}"
+
+          TOKEN_LOGIN="$(gh api user --jq '.login')"
+          echo "Token user: ${TOKEN_LOGIN}"
+
+          CAN_MODIFY="$(gh api repos/${UPSTREAM_REPO}/pulls/${PR_NUMBER} --jq '.maintainer_can_modify')"
+          echo "maintainer_can_modify: ${CAN_MODIFY}"
+
+          if [ "${CAN_MODIFY}" != "true" ]; then
+            echo "::error::PR does not allow edits from maintainers (maintainer_can_modify=false)."
+            exit 1
+          fi
+
+          PERM="$(gh api repos/${UPSTREAM_REPO}/collaborators/${TOKEN_LOGIN}/permission --jq '.permission')"
+          echo "upstream permission for ${TOKEN_LOGIN}: ${PERM}"
+
+          case "${PERM}" in
+            admin|maintain|write)
+              echo "OK: token user is a maintainer-level collaborator on upstream."
+              ;;
+            *)
+              echo "::error::Token user lacks maintainer-level access on upstream (needs write/maintain/admin, got: ${PERM})."
+              exit 1
+              ;;
+          esac
+
+          echo "TOKEN_LOGIN=${TOKEN_LOGIN}" >> "$GITHUB_ENV"
 
       - name: Checkout PR branch
         run: gh pr checkout ${{ github.event.pull_request.number }}
+
       - run: git log --oneline
 
       - run: echo "${{ github.run_id }}" >> text.txt
 
-      - name: "Commit changes back to PR"
+      - name: Commit changes back to PR
+        env:
+          GH_TOKEN: ${{ secrets.PAT }}
         run: |
+          set -euo pipefail
+
           curl -L \
             -H "Accept: application/vnd.github+json" \
             -H "Authorization: Bearer ${GH_TOKEN}" \
             -H "X-GitHub-Api-Version: 2026-03-10" \
             https://api.github.com/user
+
           git config --global user.name "ama-pfs-america-ansible-automation[bot]"
           git config --global user.email "265116361+ama-pfs-america-ansible-automation[bot]@users.noreply.github.com"
-          git add --all . 
-          git commit -m "Automated symlink consolidation [skip ci]" 
-          git remote set-url origin https://x-access-token:${GH_TOKEN}@github.com/${{ github.event.pull_request.head.repo.full_name }}.git 
-          git push origin HEAD:${{ github.event.pull_request.head.ref }}
 
+          git add --all .
+
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+            exit 0
+          fi
+
+          git commit -m "Automated symlink consolidation [skip ci]"
+
+          # For classic PAT, use actual login (not x-access-token)
+          git remote set-url origin "https://${TOKEN_LOGIN}:${GH_TOKEN}@github.com/${{ github.event.pull_request.head.repo.full_name }}.git"
+          git push origin "HEAD:${{ github.event.pull_request.head.ref }}"
