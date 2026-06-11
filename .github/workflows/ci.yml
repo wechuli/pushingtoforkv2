@@ -58,7 +58,7 @@ jobs:
 
       - name: "Commit changes back to PR"
         env:
-          GH_TOKEN: ${{ steps.token.outputs.token }}
+          GH_TOKEN: ${{ secrets.PAT }}
         run: |
           git config --global user.name "ama-pfs-america-ansible-automation[bot]"
           git config --global user.email "265116361+ama-pfs-america-ansible-automation[bot]@users.noreply.github.com"
