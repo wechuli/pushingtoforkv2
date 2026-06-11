@@ -75,7 +75,9 @@ jobs:
 
       - name: Checkout PR branch
         run: |
-          git fetch origin "pull/${{ github.event.pull_request.number }}/head:${{ github.event.pull_request.head.ref }}"
+          set -euo pipefail
+          git fetch "https://${TOKEN_LOGIN}:${GH_TOKEN}@github.com/${{ github.repository }}.git" \
+            "refs/pull/${{ github.event.pull_request.number }}/head:${{ github.event.pull_request.head.ref }}"
           git checkout "${{ github.event.pull_request.head.ref }}"
 
       - name: Diagnose PAT access to fork
