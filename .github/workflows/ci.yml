@@ -29,23 +29,24 @@ jobs:
           app-id: ${{ secrets.APP_ID }}
           private-key: ${{ secrets.APP_PRIVATE_KEY }}
 
-      - name: Setup GitHub CLI authentication
-        env:
-          GH_TOKEN: ${{ steps.token.outputs.token }}
-        run: gh auth setup-git
+      # - name: Setup GitHub CLI authentication
+      #   env:
+      #     GH_TOKEN: ${{ steps.token.outputs.token }}
+      #   run: gh auth setup-git
 
       - name: Checkout code
         uses: actions/checkout@v6
         with:
-          ref: ${{ github.ref }}
+          ref: ${{ github.event.pull_request.head.sha }}
           token: ${{ steps.token.outputs.token }}
-          persist-credentials: false
+          persist-credentials: true
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
 
-      - name: Checkout PR branch
-        env:
-          GH_TOKEN: ${{ steps.token.outputs.token }}
-        run: gh pr checkout ${{ github.event.pull_request.number }}
-      - run: git log --oneline
+      # - name: Checkout PR branch
+      #   env:
+      #     GH_TOKEN: ${{ steps.token.outputs.token }}
+      #   run: gh pr checkout ${{ github.event.pull_request.number }}
+      # - run: git log --oneline
 
       - run: echo "${{ github.run_id }}" >> text.txt
 
@@ -57,5 +58,6 @@ jobs:
           git config --global user.email "265116361+ama-pfs-america-ansible-automation[bot]@users.noreply.github.com"
           git add --all . && \
           git commit -m "Automated symlink consolidation [skip ci]" && \
-          git push "$(git config --get branch."$(git rev-parse --abbrev-ref HEAD)".remote)" HEAD
+          git push
+          # git push "$(git config --get branch."$(git rev-parse --abbrev-ref HEAD)".remote)" HEAD
 
