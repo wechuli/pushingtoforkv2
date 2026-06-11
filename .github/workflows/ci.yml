@@ -14,6 +14,8 @@ jobs:
   symlinks:
     name: Consolidate Inventory Symlinks
     runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.PAT }}
 
     permissions:
       contents: read
@@ -22,12 +24,12 @@ jobs:
       pull-requests: write
 
     steps:
-      - name: Generate GitHub token
-        id: token
-        uses: actions/create-github-app-token@v2
-        with:
-          app-id: ${{ secrets.APP_ID }}
-          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+      # - name: Generate GitHub token
+      #   id: token
+      #   uses: actions/create-github-app-token@v2
+      #   with:
+      #     app-id: ${{ secrets.APP_ID }}
+      #     private-key: ${{ secrets.APP_PRIVATE_KEY }}
       - name: Checkout code
         uses: actions/checkout@v6
         with:
@@ -36,8 +38,6 @@ jobs:
           persist-credentials: false
 
       - name: Setup GitHub CLI authentication
-        env:
-          GH_TOKEN: ${{ steps.token.outputs.token }}
         run: gh auth setup-git
 
       # - name: Checkout code
@@ -49,17 +49,18 @@ jobs:
 
 
       - name: Checkout PR branch
-        env:
-          GH_TOKEN: ${{ steps.token.outputs.token }}
         run: gh pr checkout ${{ github.event.pull_request.number }}
       - run: git log --oneline
 
       - run: echo "${{ github.run_id }}" >> text.txt
 
       - name: "Commit changes back to PR"
-        env:
-          GH_TOKEN: ${{ secrets.PAT }}
         run: |
+          curl -L \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H "X-GitHub-Api-Version: 2026-03-10" \
+            https://api.github.com/user
           git config --global user.name "ama-pfs-america-ansible-automation[bot]"
           git config --global user.email "265116361+ama-pfs-america-ansible-automation[bot]@users.noreply.github.com"
           git add --all . 
