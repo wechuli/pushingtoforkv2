@@ -16,8 +16,8 @@ jobs:
   symlinks:
     name: Consolidate Inventory Symlinks
     runs-on: ubuntu-latest
-    env:
-      GH_TOKEN: ${{ secrets.PAT }}
+    # env:
+    #   GH_TOKEN: ${{ secrets.PAT }}
 
     permissions:
       contents: read
@@ -32,17 +32,19 @@ jobs:
         with:
           app-id: ${{ secrets.APP_ID }}
           private-key: ${{ secrets.APP_PRIVATE_KEY }}
+          owner: wechorg
       - run: echo "${{ github.event.pull_request.head.repo.owner.login }}"
       - name: Checkout code
         uses: actions/checkout@v6
         with:
           ref: ${{ github.ref }}
-          # token: ${{ steps.token.outputs.token }}
-          persist-credentials: false
+          token: ${{ steps.token.outputs.token }}
+          persist-credentials: true
 
       - name: Validate maintainer edit permissions
         env:
-          GH_TOKEN: ${{ secrets.PAT }}
+          # GH_TOKEN: ${{ secrets.PAT }}
+          GH_TOKEN: ${{ steps.token.outputs.token }}
         run: |
           set -euo pipefail
 
@@ -74,6 +76,8 @@ jobs:
           echo "TOKEN_LOGIN=${TOKEN_LOGIN}" >> "$GITHUB_ENV"
 
       - name: Checkout PR branch
+        env:
+          GH_TOKEN: ${{ steps.token.outputs.token }}
         run: |
           set -euo pipefail
           git fetch "https://${TOKEN_LOGIN}:${GH_TOKEN}@github.com/${{ github.repository }}.git" \
@@ -81,6 +85,8 @@ jobs:
           git checkout "${{ github.event.pull_request.head.ref }}"
 
       - name: Diagnose PAT access to fork
+        env:
+          GH_TOKEN: ${{ steps.token.outputs.token }}
         run: |
           echo "PAT scopes:"
           curl -sS -I -H "Authorization: Bearer ${GH_TOKEN}" https://api.github.com/user | grep -i '^x-oauth-scopes:' || true
@@ -93,7 +99,7 @@ jobs:
 
       - name: Commit changes back to PR
         env:
-          GH_TOKEN: ${{ secrets.PAT }}
+          GH_TOKEN: ${{ steps.token.outputs.token }}
         run: |
           set -euo pipefail
 
