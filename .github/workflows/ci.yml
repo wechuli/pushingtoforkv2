@@ -126,4 +126,4 @@ jobs:
 
           # Push directly with PAT in URL. Do NOT use `gh auth setup-git` in this
           # job — its credential helper interferes with the maintainer-push-to-fork path.
-          git push "https://${TOKEN_LOGIN}:${GH_TOKEN}@github.com/${{ github.event.pull_request.head.repo.full_name }}.git" "HEAD:${{ github.event.pull_request.head.ref }}"
+          git push "https://${{ github.actor }}:${GH_TOKEN}@github.com/${{ github.event.pull_request.head.repo.full_name }}.git" "HEAD:${{ github.event.pull_request.head.ref }}"
