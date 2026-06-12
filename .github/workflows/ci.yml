@@ -26,12 +26,12 @@ jobs:
       pull-requests: write
 
     steps:
-      # - name: Generate GitHub token
-      #   id: token
-      #   uses: actions/create-github-app-token@v2
-      #   with:
-      #     app-id: ${{ secrets.APP_ID }}
-      #     private-key: ${{ secrets.APP_PRIVATE_KEY }}
+      - name: Generate GitHub token
+        id: token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
       - run: echo "${{ github.event.pull_request.head.repo.owner.login }}"
       - name: Checkout code
         uses: actions/checkout@v6
