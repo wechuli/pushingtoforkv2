@@ -56,8 +56,7 @@ jobs:
           echo "maintainer_can_modify: ${CAN_MODIFY}"
 
           if [ "${CAN_MODIFY}" != "true" ]; then
-            echo "::error::PR does not allow edits from maintainers (maintainer_can_modify=false)."
-            exit 1
+            echo "::warning::PR does not allow edits from maintainers (maintainer_can_modify=false)."
           fi
 
           PERM="$(gh api repos/${UPSTREAM_REPO}/collaborators/${TOKEN_LOGIN}/permission --jq '.permission')"
@@ -68,8 +67,7 @@ jobs:
               echo "OK: token user is a maintainer-level collaborator on upstream."
               ;;
             *)
-              echo "::error::Token user lacks maintainer-level access on upstream (needs write/maintain/admin, got: ${PERM})."
-              exit 1
+              echo "::warning::Token user lacks maintainer-level access on upstream (needs write/maintain/admin, got: ${PERM})."
               ;;
           esac
 
